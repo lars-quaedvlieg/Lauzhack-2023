@@ -4,7 +4,7 @@ import os
 from elevenlabs import set_api_key
 set_api_key(os.getenv("ELEVENLABS_API_KEY"))
 
-from elevenlabs import clone, generate, play, voices
+from elevenlabs import clone, generate, play, voices, Voice, VoiceSettings
 
 class ClonedVoice():
 
@@ -31,9 +31,23 @@ class ClonedVoice():
             files=files,
         )
 
-    def generate_audio(self, text, play_audio=True):
+    def play_audio(self, text, settings_config = None):
+        '''
+        Generates audio from text using the cloned voice.
+        :param text: text to be converted to audio
+        :param play_audio: if True, plays the audio
+        :param settings_config: Dictionary with keys: stability, similarity_boost, style, use_speaker_boost        
+        '''
 
         assert self.voice is not None, "Voice not yet cloned"
-        audio = generate(text=text, voice=self.voice)
-        if play_audio:
-            play(audio)
+
+        if settings_config is None:
+            voice = self.voice
+        else:
+            voice = Voice(
+                voice_id=self.voice.voice_id,
+                settings=VoiceSettings(**settings_config)
+            )
+        audio = generate(text=text, voice=voice)
+
+        play(audio)
