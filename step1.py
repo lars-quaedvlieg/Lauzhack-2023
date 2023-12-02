@@ -7,6 +7,34 @@ from openai import OpenAI
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
 
+def record_audio(fs, silence_threshold, max_silence_dur, min_dur):
+    buffer = np.array([])  # Buffer to store audio data
+    terminated = False
+    cv = Condition()
+
+    def callback(indata, frames, time, status):
+        nonlocal terminated
+        nonlocal buffer
+
+        print(np.mean(np.abs(buffer[-max_silence_dur * 1000:])))
+        buffer = np.append(buffer, indata.copy())
+
+        # Detect silence
+        if np.mean(np.abs(buffer[-max_silence_dur * 1000:])) < silence_threshold:
+            # If silence is detected, check the duration
+            if len(buffer) / fs > min_dur:
+                with cv:
+                    terminated = True
+                    cv.notify()
+
+    with sd.InputStream(callback=callback, samplerate=fs, channels=1):
+        with cv:
+            while not terminated:
+                cv.wait()
+
+    return buffer
+
+
 class ConversationalModel:
     def __init__(self, sys_prompt: Optional[str] = None):
         self.sys_prompt = sys_prompt
@@ -26,16 +54,17 @@ class ConversationalModel:
         return txt
 
 
-def record_audio(fs: int = 16000) -> np.ndarray:
-    audio = sd.rec(int(5*fs), samplerate=fs, channels=1)
-    sd.wait()
+def record_audio(fs: int = 16000, silence_threshold: float = 1e-4, max_silence_duration: int = 2,
+                 min_duration: int = 3) -> np.ndarray:
+    audio = record_audio(fs=fs, silence_threshold=silence_threshold, max_silence_dur=max_silence_duration,
+                         min_dur=min_duration)
     return audio
 
 
 def main():
     # Config.
     fs = 16000
-    duration = 5
+
     processor = WhisperProcessor.from_pretrained("openai/whisper-base")
     transcriber = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base")
     questioner = ConversationalModel()
