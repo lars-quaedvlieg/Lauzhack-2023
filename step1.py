@@ -1,6 +1,11 @@
 import os
+import json
+from datetime import datetime
 from typing import Optional
+from pathlib import Path
 
+from dotenv import load_dotenv
+from scipy.io import wavfile
 import numpy as np
 import sounddevice as sd
 from openai import OpenAI
@@ -63,6 +68,7 @@ def record_audio(fs: int = 16000, silence_threshold: float = 1e-4, max_silence_d
 
 def main():
     # Config.
+    print("Loading models", end="... ", flush=True)
     fs = 16000
 
     processor = WhisperProcessor.from_pretrained("openai/whisper-base")
@@ -72,6 +78,9 @@ def main():
               "You might follow up each of my answers to get more details. "
               "You may ask only one question at a time. "
               "You should not prepend any question with any meaningless information.")
+    audios = []
+    questions = []
+    print("Done!")
 
     # Main loop.
     print("Starting Q&A. Ctrl+C when you want to terminate.")
@@ -85,6 +94,7 @@ def main():
             print(f"> {question}")
             print("Now, start speaking", end="... ", flush=True)
             audio = record_audio(fs)
+            audios.append(audio[:, 0])
             print("Done!")
 
             print("Transcribing", end="... ", flush=True)
@@ -93,11 +103,32 @@ def main():
             print("Done!")
             print("Transcription:", prompt)
             print()
+            questions.append({"question": question, "answer": prompt})
         except KeyboardInterrupt:
             done = True
             print()
             print("Terminating Q&A")
+            print()
+
+    # Save outputs.
+    print("Saving outputs", end="... ", flush=True)
+    i = 1
+    while (path := Path("outs")/f"out{i}").exists():
+        i += 1
+    path.mkdir()
+    now = datetime.now()
+    data = {"date": now.isoformat()}
+    with open(path/"meta.json", "w+") as f:
+        json.dump(data, f, indent=4)
+    with open(path/"conversation.json", "w+") as f:
+        json.dump(questions, f)
+    for i, audio in enumerate(audios):
+        (path/"recordings").mkdir(exist_ok=True)
+        wavfile.write(path/"recordings"/f"recording{i + 1}.wav", fs, audio)
+    print("Done!")
+
 
 
 if __name__ == "__main__":
+    load_dotenv()
     main()
