@@ -1,43 +1,18 @@
 import os
 import json
 from datetime import datetime
+from threading import Condition
 from typing import Optional
 from pathlib import Path
 
-from dotenv import load_dotenv
-from scipy.io import wavfile
 import numpy as np
 import sounddevice as sd
+import torch
+from dotenv import load_dotenv
+from scipy.io import wavfile
 from openai import OpenAI
-from transformers import WhisperProcessor, WhisperForConditionalGeneration
-
-
-def record_audio(fs, silence_threshold, max_silence_dur, min_dur):
-    buffer = np.array([])  # Buffer to store audio data
-    terminated = False
-    cv = Condition()
-
-    def callback(indata, frames, time, status):
-        nonlocal terminated
-        nonlocal buffer
-
-        print(np.mean(np.abs(buffer[-max_silence_dur * 1000:])))
-        buffer = np.append(buffer, indata.copy())
-
-        # Detect silence
-        if np.mean(np.abs(buffer[-max_silence_dur * 1000:])) < silence_threshold:
-            # If silence is detected, check the duration
-            if len(buffer) / fs > min_dur:
-                with cv:
-                    terminated = True
-                    cv.notify()
-
-    with sd.InputStream(callback=callback, samplerate=fs, channels=1):
-        with cv:
-            while not terminated:
-                cv.wait()
-
-    return buffer
+from transformers import WhisperProcessor, WhisperForConditionalGeneration, pipeline
+from datasets import load_dataset
 
 
 class ConversationalModel:
@@ -59,11 +34,34 @@ class ConversationalModel:
         return txt
 
 
-def record_audio(fs: int = 16000, silence_threshold: float = 1e-4, max_silence_duration: int = 2,
-                 min_duration: int = 3) -> np.ndarray:
-    audio = record_audio(fs=fs, silence_threshold=silence_threshold, max_silence_dur=max_silence_duration,
-                         min_dur=min_duration)
-    return audio
+def record_audio(fs: int = 16000, silence_threshold: float = 0.01, max_silence_dur: int = 2,
+                 min_dur: int = 3) -> np.ndarray:
+
+    buffer = np.array([])  # Buffer to store audio data
+    terminated = False
+    cv = Condition()
+
+    def callback(indata, frames, time, status):
+        nonlocal terminated
+        nonlocal buffer
+
+        # print(np.mean(np.abs(buffer[-max_silence_dur * 1000:])))
+        buffer = np.append(buffer, indata.copy())
+
+        # Detect silence
+        if np.mean(np.abs(buffer[-max_silence_dur * 1000:])) < silence_threshold:
+            # If silence is detected, check the duration
+            if len(buffer) / fs > min_dur:
+                with cv:
+                    terminated = True
+                    cv.notify()
+
+    with sd.InputStream(callback=callback, samplerate=fs, channels=1):
+        with cv:
+            while not terminated:
+                cv.wait()
+
+    return buffer[:, None]
 
 
 def main():
@@ -71,8 +69,9 @@ def main():
     print("Loading models", end="... ", flush=True)
     fs = 16000
 
-    processor = WhisperProcessor.from_pretrained("openai/whisper-base")
+    transcriber_processor = WhisperProcessor.from_pretrained("openai/whisper-base")
     transcriber = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base")
+    synthesiser = pipeline("text-to-speech", "microsoft/speecht5_tts")
     questioner = ConversationalModel()
     prompt = ("You are tasked to ask me many questions to get to know me. "
               "You might follow up each of my answers to get more details. "
@@ -80,6 +79,8 @@ def main():
               "You should not prepend any question with any meaningless information.")
     audios = []
     questions = []
+    embeddings_dataset = load_dataset("Matthijs/cmu-arctic-xvectors", split="validation")
+    speaker_embedding = torch.tensor(embeddings_dataset[7306]["xvector"]).unsqueeze(0)
     print("Done!")
 
     # Main loop.
@@ -91,15 +92,21 @@ def main():
             question = questioner(prompt)
             print("Done!")
 
+            print("Generating audio", end="... ", flush=True)
+            speech = synthesiser(question, forward_params={"speaker_embeddings": speaker_embedding})
+            print("Done!")
             print(f"> {question}")
+            sd.play(speech["audio"][:, None], fs)
+            sd.wait()
+
             print("Now, start speaking", end="... ", flush=True)
             audio = record_audio(fs)
             audios.append(audio[:, 0])
             print("Done!")
 
             print("Transcribing", end="... ", flush=True)
-            x = processor(audio[:, 0], sampling_rate=fs, return_tensors="pt").input_features
-            prompt = processor.batch_decode(transcriber.generate(x), skip_special_tokens=True)[0].strip()
+            x = transcriber_processor(audio[:, 0], sampling_rate=fs, return_tensors="pt").input_features
+            prompt = transcriber_processor.batch_decode(transcriber.generate(x), skip_special_tokens=True)[0].strip()
             print("Done!")
             print("Transcription:", prompt)
             print()
