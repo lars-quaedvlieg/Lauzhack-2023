@@ -23,8 +23,11 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     # Config.
     print("Loading models", end="... ", flush=True)
     questioner = ConversationalModel()
-    transcriber = SpeechToText()
-    prompt = ("You are tasked to ask me many questions to get to know me. "
+    transcriber = SpeechToText(silence_threshold=0.0015)
+
+    transcriber.plot_noise()
+
+    prompt = ("You are tasked to ask me diverse questions to get to know me. "
               "You might follow up each of my answers to get more details but don't focus too much in a single topic. "
               "You may ask only one question at a time. "
               "You should not prepend any question with any meaningless information.")

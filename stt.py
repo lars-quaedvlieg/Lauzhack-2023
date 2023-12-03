@@ -2,6 +2,7 @@ from threading import Condition
 
 import numpy as np
 import sounddevice as sd
+from matplotlib import pyplot as plt
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
 
@@ -15,6 +16,27 @@ class SpeechToText:
 
         self.processor = WhisperProcessor.from_pretrained("openai/whisper-base")
         self.model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base")
+
+    def plot_noise(self, dur: int = 5) -> None:
+        print('Generating noise information')
+        buffer = np.array([])  # Buffer to store audio data
+        mean_noises = np.array([])
+        def callback(indata, frames, time, status):
+            nonlocal buffer
+            nonlocal mean_noises
+
+            buffer = np.append(buffer, indata.copy())
+
+            mean_noise = np.mean(np.abs(buffer[-self.max_silence_dur * 1000:]))
+            mean_noises = np.append(mean_noises, mean_noise.copy())
+
+        with sd.InputStream(callback=callback, samplerate=self.fs, channels=1):
+            sd.sleep(dur*1000)
+
+        plt.plot(mean_noises)
+        plt.show()
+
+        print(f'Mean noise: {np.mean(mean_noises)}')
 
     def record(self) -> np.ndarray:
         buffer = np.array([])  # Buffer to store audio data
@@ -43,13 +65,11 @@ class SpeechToText:
 
         return buffer[:, None]
 
-
     def transcribe(self, audio: np.ndarray) -> str:
         x = self.processor(audio[:, 0], sampling_rate=self.fs,
                            return_tensors="pt").input_features
         return self.processor.batch_decode(self.model.generate(x),
                                            skip_special_tokens=True)[0].strip()
-
 
     def __call__(self) -> str:
         return self.transcribe(self.record())
