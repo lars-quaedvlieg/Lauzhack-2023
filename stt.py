@@ -2,20 +2,23 @@ from threading import Condition
 
 import numpy as np
 import sounddevice as sd
+import torch
 from matplotlib import pyplot as plt
 from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
 
 class SpeechToText:
-    def __init__(self, fs: int = 16000, silence_threshold: float = 0.01,
-                 max_silence_dur: int = 2, min_dur: int = 3):
+    def __init__(self, size: str = "small", dtype=torch.float32, fs: int = 16000,
+                 silence_threshold: float = 0.01, max_silence_dur: int = 2, min_dur: int = 3):
         self.fs = fs
         self.silence_threshold = silence_threshold
         self.max_silence_dur = max_silence_dur
         self.min_dur = min_dur
 
-        self.processor = WhisperProcessor.from_pretrained("openai/whisper-base")
-        self.model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-base")
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.dtype = dtype
+        self.processor = WhisperProcessor.from_pretrained(f"openai/whisper-{size}")
+        self.model = WhisperForConditionalGeneration.from_pretrained(f"openai/whisper-{size}").to(dtype=self.dtype, device=self.device)
 
     def plot_noise(self, dur: int = 5) -> None:
         print('Generating noise information')
@@ -67,7 +70,7 @@ class SpeechToText:
 
     def transcribe(self, audio: np.ndarray) -> str:
         x = self.processor(audio[:, 0], sampling_rate=self.fs,
-                           return_tensors="pt").input_features
+                           return_tensors="pt").input_features.to(dtype=self.dtype, device=self.device)
         return self.processor.batch_decode(self.model.generate(x),
                                            skip_special_tokens=True)[0].strip()
 
