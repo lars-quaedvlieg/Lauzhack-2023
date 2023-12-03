@@ -3,12 +3,8 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
-import sounddevice as sd
-import torch
 from dotenv import load_dotenv
 from scipy.io import wavfile
-from datasets import load_dataset
 
 from conversational_model import ConversationalModel
 from stt import SpeechToText
@@ -86,7 +82,9 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
 
     # Create clone voice.
     speak("generic", "Thank you for the conversation. Now tell me a brief description about you")
-    description = transcriber()
+    audio = transcriber.record()
+    wavfile.write(path/"recordings"/"description.wav", transcriber.fs, audio)
+    description = transcriber.transcribe(audio)
     if dry_run:
         print("Not submitting voices, running dry mode!")
     else:
