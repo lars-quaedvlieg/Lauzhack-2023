@@ -4,7 +4,7 @@ import os
 from elevenlabs import set_api_key
 set_api_key(os.getenv("ELEVENLABS_API_KEY"))
 
-from elevenlabs import clone, generate, play, voices, Voice, VoiceSettings
+from elevenlabs import clone, generate, stream, voices, Voice, VoiceSettings
 
 
 class VoiceGenerator():
@@ -39,9 +39,9 @@ class VoiceGenerator():
                 voice_id=self.voice.voice_id,
                 settings=VoiceSettings(**settings_config)
             )
-        audio = generate(text=text, voice=voice)
+        audio = generate(text=text, voice=voice, stream=True)
 
-        play(audio)
+        stream(audio)
     
     def clone_voice(self, files, description=''):
 
