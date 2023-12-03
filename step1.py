@@ -3,12 +3,8 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
-import sounddevice as sd
-import torch
 from dotenv import load_dotenv
 from scipy.io import wavfile
-from datasets import load_dataset
 
 from conversational_model import ConversationalModel
 from stt import SpeechToText
