@@ -23,23 +23,23 @@ class SpeechToText:
     def plot_noise(self, dur: int = 5) -> None:
         print('Generating noise information')
         buffer = np.array([])  # Buffer to store audio data
-        mean_noises = np.array([])
+        max_noises = np.array([])
         def callback(indata, frames, time, status):
             nonlocal buffer
-            nonlocal mean_noises
+            nonlocal max_noises
 
             buffer = np.append(buffer, indata.copy())
 
-            mean_noise = np.mean(np.abs(buffer[-self.max_silence_dur * 1000:]))
-            mean_noises = np.append(mean_noises, mean_noise.copy())
+            max_noise = np.max(np.abs(buffer[-self.max_silence_dur * 1000:]))
+            max_noises = np.append(max_noises, max_noise.copy())
 
         with sd.InputStream(callback=callback, samplerate=self.fs, channels=1):
             sd.sleep(dur*1000)
 
-        plt.plot(mean_noises)
+        plt.plot(max_noises)
         plt.show()
 
-        print(f'Mean noise: {np.mean(mean_noises)}')
+        print(f'Max noise: {np.mean(max_noises)}')
 
     def record(self) -> np.ndarray:
         buffer = np.array([])  # Buffer to store audio data
@@ -54,7 +54,8 @@ class SpeechToText:
             buffer = np.append(buffer, indata.copy())
 
             # Detect silence
-            if np.mean(np.abs(buffer[-self.max_silence_dur * 1000:])) < self.silence_threshold:
+            maxmimum_noise = np.max(np.abs(buffer[-self.max_silence_dur * 1000:]))
+            if maxmimum_noise < self.silence_threshold:
                 # If silence is detected, check the duration
                 if len(buffer) / self.fs > self.min_dur:
                     with cv:
