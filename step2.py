@@ -32,6 +32,9 @@ You: "I love skiing!" (even though you do not know whether the person skis or no
 
 MOST IMPORTANTLY, you should ALWAYS talk from the perspective of the persona, and never break role to talk as ChatGPT.
 
+This is a brief description of the person you are replicating:
+{}
+
 The following is the list of conversation that the persona has with the GPT. The personas's replies were given as "You"."""
 
 
@@ -42,11 +45,13 @@ def main(voice: str, path: Path) -> None:
     print("Done!")
 
     # Get conversation.
-    with open(path) as f:
+    with open(path/"conversation.json") as f:
         context = json.load(f)
+    with open(path/"description.txt") as f:
+        description = "".join(f)
 
     # Get chatbot.
-    prompt = PROMPT
+    prompt = PROMPT.format(description)
     prompt += "\n\n" + "\n".join(f"Question: {line['question']}\nYou: {line['answer']}"
                                  for line in context)
     chatbot = ConversationalModel(sys_prompt=prompt)
@@ -68,8 +73,7 @@ def main(voice: str, path: Path) -> None:
             print()
         except KeyboardInterrupt:
             done = True
-            speak("Goodbye", voice)
-
+    speak(voice, "Goodbye")
 
 
 if __name__ == "__main__":

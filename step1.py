@@ -3,12 +3,8 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
-import sounddevice as sd
-import torch
 from dotenv import load_dotenv
 from scipy.io import wavfile
-from datasets import load_dataset
 
 from conversational_model import ConversationalModel
 from stt import SpeechToText
@@ -23,8 +19,11 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     # Config.
     print("Loading models", end="... ", flush=True)
     questioner = ConversationalModel()
-    transcriber = SpeechToText()
-    prompt = ("You are tasked to ask me many questions to get to know me. "
+    transcriber = SpeechToText(silence_threshold=0.0015)
+
+    transcriber.plot_noise()
+
+    prompt = ("You are tasked to ask me diverse questions to get to know me. "
               "You might follow up each of my answers to get more details but don't focus too much in a single topic. "
               "You may ask only one question at a time. "
               "You should not prepend any question with any meaningless information.")
@@ -33,6 +32,7 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     print("Done!")
 
     # Main loop.
+    print()
     print("Starting Q&A. Ctrl+C when you want to terminate.")
     done = False
     while not done:
@@ -69,7 +69,7 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     i = 1
     while (path := Path("outs")/f"out{i}").exists():
         i += 1
-    path.mkdir()
+    path.mkdir(parents=True)
     now = datetime.now()
     data = {"date": now.isoformat()}
     with open(path/"meta.json", "w+") as f:
@@ -82,8 +82,14 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     print("Done!")
 
     # Create clone voice.
+    print("Thank you for the conversation. Now tell me a brief description about you")
     speak("generic", "Thank you for the conversation. Now tell me a brief description about you")
-    description = transcriber()
+    audio = transcriber.record()
+    wavfile.write(path/"recordings"/"description.wav", transcriber.fs, audio)
+    description = transcriber.transcribe(audio)
+    print(description)
+    with open(path/"description.txt", "w+") as f:
+        print(description, file=f)
     if dry_run:
         print("Not submitting voices, running dry mode!")
     else:
