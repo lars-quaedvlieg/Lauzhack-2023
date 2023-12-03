@@ -81,3 +81,17 @@ class GenericVoice(Voice):
 
         # default to voice 'Charlie' if no suitable voice for specific profile
         return [v for v in voices() if v.name=='Charlie'][0]
+
+
+def speak(name: str, text: str) -> None:
+    if name == "generic":
+        voice = GenericVoice()
+    else:
+        voice = ClonedVoice(name)
+    voice.play_audio(text)
+
+
+def create_cloned_voice(name, audio_dir, description=''):
+    new_voice = ClonedVoice(name)
+    new_voice.clone_voice([os.path.join(audio_dir, f) for f in os.listdir(audio_dir)], description)
+    return new_voice
