@@ -6,10 +6,40 @@ set_api_key(os.getenv("ELEVENLABS_API_KEY"))
 
 from elevenlabs import clone, generate, play, voices, Voice, VoiceSettings
 
-class ClonedVoice():
+
+class Voice():
+
+    def __init__(self):
+
+        self.voice = None
+
+    def play_audio(self, text, settings_config = None):
+        '''
+        Generates audio from text using the cloned voice.
+        :param text: text to be converted to audio
+        :param play_audio: if True, plays the audio
+        :param settings_config: Dictionary with keys: stability, similarity_boost, style, use_speaker_boost
+        '''
+
+        assert self.voice is not None, "Voice not yet cloned"
+
+        if settings_config is None:
+            voice = self.voice
+        else:
+            voice = Voice(
+                voice_id=self.voice.voice_id,
+                settings=VoiceSettings(**settings_config)
+            )
+        audio = generate(text=text, voice=voice)
+
+        play(audio)
+
+
+class ClonedVoice(Voice):
 
     def __init__(self, name):
 
+        super().__init__()
         self.name = name
         self.voice = self._get_voice_if_exists()
 
@@ -31,23 +61,23 @@ class ClonedVoice():
             files=files,
         )
 
-    def play_audio(self, text, settings_config = None):
-        '''
-        Generates audio from text using the cloned voice.
-        :param text: text to be converted to audio
-        :param play_audio: if True, plays the audio
-        :param settings_config: Dictionary with keys: stability, similarity_boost, style, use_speaker_boost        
-        '''
 
-        assert self.voice is not None, "Voice not yet cloned"
+class GenericVoice(Voice):
 
-        if settings_config is None:
-            voice = self.voice
-        else:
-            voice = Voice(
-                voice_id=self.voice.voice_id,
-                settings=VoiceSettings(**settings_config)
-            )
-        audio = generate(text=text, voice=voice)
+    def __init__(self, age_group=None, gender=None):
 
-        play(audio)
+        super().__init__()
+        self.age_group = age_group
+        self.gender = gender
+        self.voice = self._get_voice()
+
+
+    def _get_voice(self):
+
+        if self.age_group is not None and self.gender is not None:
+            profile_voices = [v for v in voices() if 'age' in v.labels and (v.labels['age'] == self.age_group and v.labels['gender'] == self.gender)]
+            if profile_voices:
+                return profile_voices[0]
+
+        # default to voice 'Charlie' if no suitable voice for specific profile
+        return [v for v in voices() if v.name=='Charlie'][0]
