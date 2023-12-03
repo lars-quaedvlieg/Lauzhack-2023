@@ -2,11 +2,11 @@
 
 ## Inspiration
 
-Legacy LM aims to provide a unique solution to address the universal need to preserve personal connections and comfort loved ones during bereavement.
+Preserving personal legacies is an ongoing concern for many. As time passes, memories fade, voices are lost, and the essence of individuals can become distant.
 
 ## What it does
 
-Legacy LM enables users to create personalised AI models through conversational data input, capturing their speaking style, typical expressions, and voice nuances. These models can simulate casual chats, serving as a comforting presence for loved ones after the user's passing.
+Our solution offers a unique way to overcome this by enabling individuals to create personalized conversational AI models, ensuring that your legacy—your voice, stories, and personality—endures beyond your lifetime, providing comfort and connection to your loved ones in the future.
 
 ## How we built it
 
