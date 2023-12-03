@@ -57,3 +57,10 @@ def create_cloned_voice(name, audio_dir, description=''):
     new_voice = VoiceGenerator(name)
     new_voice.clone_voice([os.path.join(audio_dir, f) for f in os.listdir(audio_dir)], description)
     return new_voice
+
+def speak(name: str, text: str) -> None:
+    if name == "generic":
+        voice = VoiceGenerator('Charlie')
+    else:
+        voice = VoiceGenerator(name)
+    voice.play_audio(text)
