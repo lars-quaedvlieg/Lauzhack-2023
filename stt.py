@@ -8,7 +8,7 @@ from transformers import WhisperProcessor, WhisperForConditionalGeneration
 
 
 class SpeechToText:
-    def __init__(self, size: str = "small", dtype=torch.float32, fs: int = 16000,
+    def __init__(self, size: str = "small", fs: int = 16000,
                  silence_threshold: float = 0.01, max_silence_dur: int = 2, min_dur: int = 3):
         self.fs = fs
         self.silence_threshold = silence_threshold
@@ -16,7 +16,7 @@ class SpeechToText:
         self.min_dur = min_dur
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.dtype = dtype
+        self.dtype = torch.bfloat16 if self.device == "cuda" else torch.float32
         self.processor = WhisperProcessor.from_pretrained(f"openai/whisper-{size}")
         self.model = WhisperForConditionalGeneration.from_pretrained(f"openai/whisper-{size}").to(dtype=self.dtype, device=self.device)
 
