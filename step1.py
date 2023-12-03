@@ -32,6 +32,7 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     print("Done!")
 
     # Main loop.
+    print()
     print("Starting Q&A. Ctrl+C when you want to terminate.")
     done = False
     while not done:
@@ -81,11 +82,14 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     print("Done!")
 
     # Create clone voice.
+    print("Thank you for the conversation. Now tell me a brief description about you")
     speak("generic", "Thank you for the conversation. Now tell me a brief description about you")
     audio = transcriber.record()
     wavfile.write(path/"recordings"/"description.wav", transcriber.fs, audio)
     description = transcriber.transcribe(audio)
     print(description)
+    with open(path/"description.txt", "w+") as f:
+        print(description, file=f)
     if dry_run:
         print("Not submitting voices, running dry mode!")
     else:

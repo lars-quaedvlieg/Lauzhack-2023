@@ -4,3 +4,4 @@ sounddevice
 transformers
 openai
 scipy
+torch
