@@ -79,7 +79,9 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
 
     # Create clone voice.
     speak("generic", "Thank you for the conversation. Now tell me a brief description about you")
-    description = transcriber()
+    audio = transcriber.record()
+    wavfile.write(path/"recordings"/"description.wav", transcriber.fs, audio)
+    description = transcriber.transcribe(audio)
     if dry_run:
         print("Not submitting voices, running dry mode!")
     else:
