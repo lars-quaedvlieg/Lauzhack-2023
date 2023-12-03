@@ -17,9 +17,9 @@ class VoiceGenerator():
 
         cloned_voices = [v for v in voices() if v.name==self.name]
         if not cloned_voices:
-            print('No existing voice with this name found.')
+            # print('No existing voice with this name found.')
             return None
-        print('An existing voice with this name was found. No need to re-clone.')
+        # print('An existing voice with this name was found. No need to re-clone.')
         return cloned_voices[0]
     
     def play_audio(self, text, settings_config = None):
