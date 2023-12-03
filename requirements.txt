@@ -1,2 +1,6 @@
 python-dotenv
 elevenlabs
+sounddevice
+transformers
+openai
+scipy
