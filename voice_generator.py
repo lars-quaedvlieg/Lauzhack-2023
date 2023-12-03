@@ -52,7 +52,7 @@ class ClonedVoice(Voice):
         print('An existing cloned voice with this name was found. No need to re-clone.')
         return cloned_voices[0]
 
-    def clone_voice(self, files, description):
+    def clone_voice(self, files, description=''):
 
         assert self.voice is None, "Cloned voice already exists. Re-cloning not allowed."
         self.voice = clone(
@@ -81,11 +81,3 @@ class GenericVoice(Voice):
 
         # default to voice 'Charlie' if no suitable voice for specific profile
         return [v for v in voices() if v.name=='Charlie'][0]
-
-
-def speak(name: str, text: str) -> None:
-    if name == "generic":
-        voice = GenericVoice()
-    else:
-        voice = ClonedVoice(name)
-    voice.play_audio(text)
