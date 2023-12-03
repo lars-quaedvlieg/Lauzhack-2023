@@ -73,8 +73,7 @@ def main(voice: str, path: Path) -> None:
             print()
         except KeyboardInterrupt:
             done = True
-            speak("Goodbye", voice)
-
+    speak(voice, "Goodbye")
 
 
 if __name__ == "__main__":
