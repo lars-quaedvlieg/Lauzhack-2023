@@ -61,6 +61,9 @@ def create_cloned_voice(name, audio_dir, description=''):
 def speak(name: str, text: str) -> None:
     if name == "generic":
         voice = VoiceGenerator('Charlie')
+        settings_config = None
     else:
         voice = VoiceGenerator(name)
-    voice.play_audio(text)
+        settings_config = {'stability': 0.5, 'similarity_boost': 0.81,
+                           'style': 0.4, 'use_speaker_boost': True}
+    voice.play_audio(text, settings_config=settings_config)

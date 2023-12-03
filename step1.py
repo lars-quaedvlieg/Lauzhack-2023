@@ -68,7 +68,7 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     i = 1
     while (path := Path("outs")/f"out{i}").exists():
         i += 1
-    path.mkdir()
+    path.mkdir(parents=True)
     now = datetime.now()
     data = {"date": now.isoformat()}
     with open(path/"meta.json", "w+") as f:
@@ -85,6 +85,7 @@ def main(verbose: bool, voice: str, dry_run: bool) -> None:
     audio = transcriber.record()
     wavfile.write(path/"recordings"/"description.wav", transcriber.fs, audio)
     description = transcriber.transcribe(audio)
+    print(description)
     if dry_run:
         print("Not submitting voices, running dry mode!")
     else:
